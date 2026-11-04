@@ -9,11 +9,11 @@ export const productController = {
   }),
 
   listByCategory: asyncHandler(async (req, res) => {
-    const { category, items, meta } = await productService.listByCategorySlug(
+    const { category, facets, items, meta } = await productService.listByCategorySlug(
       req.params.slug,
       listQuerySchema.parse(req.query),
     );
-    sendSuccess(res, { category, items }, meta);
+    sendSuccess(res, { category, facets, items }, meta);
   }),
 
   home: asyncHandler(async (_req, res) => {

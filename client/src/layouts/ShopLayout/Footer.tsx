@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom';
 import { useCategories } from '@/features/products/hooks';
-import { Logo } from './Header';
+import { Logo } from './Logo';
 
 const HELP_LINKS = [
   { label: 'Track your order', to: '/account/orders' },
@@ -54,7 +54,13 @@ export function Footer() {
           </p>
         </div>
 
-        <FooterColumn title="Shop" links={categories.map((c) => ({ label: c.name, to: `/collections/${c.slug}` }))} />
+        <FooterColumn
+          title="Shop"
+          links={[
+            ...categories.map((c) => ({ label: c.name, to: `/collections/${c.slug}` })),
+            { label: 'All products', to: '/collections/all' },
+          ]}
+        />
         <FooterColumn title="Help" links={HELP_LINKS} />
         <FooterColumn title="Company" links={COMPANY_LINKS} />
       </div>

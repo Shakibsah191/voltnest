@@ -76,6 +76,11 @@ productSchema.index({ status: 1, publishedAt: -1 });
 productSchema.index({ status: 1, salesCount: -1 });
 productSchema.index({ status: 1, minPrice: 1 });
 productSchema.index({ 'variants.sku': 1 }, { unique: true });
+// collection filters (Day 2)
+productSchema.index({ status: 1, 'variants.options.wattage': 1 });
+productSchema.index({ status: 1, 'variants.options.capacity': 1 });
+productSchema.index({ status: 1, 'variants.options.ports': 1 });
+productSchema.index({ status: 1, 'variants.price': 1 });
 
 export type Product = InferSchemaType<typeof productSchema>;
 export const ProductModel = model('Product', productSchema);

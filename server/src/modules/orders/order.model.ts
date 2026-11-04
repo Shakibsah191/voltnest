@@ -1,5 +1,5 @@
 import { Schema, model, Types, type InferSchemaType } from 'mongoose';
-import { DELIVERY_ZONES } from '../users/user.model';
+import { DELIVERY_ZONES } from '../../shared/delivery';
 
 export const ORDER_STATUSES = [
   'pending',

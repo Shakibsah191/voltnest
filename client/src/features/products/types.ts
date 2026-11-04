@@ -66,6 +66,40 @@ export interface ProductListParams {
   page?: number;
   limit?: number;
   sort?: ProductSort;
+  q?: string;
+  minPrice?: number;
+  maxPrice?: number;
+  /** comma-separated, e.g. "65,100" */
+  wattage?: string;
+  capacity?: string;
+  ports?: string;
+  inStock?: boolean;
+}
+
+export interface FacetValue {
+  value: number;
+  count: number;
+}
+
+export interface Facets {
+  price: { min: number; max: number };
+  wattage: FacetValue[];
+  capacity: FacetValue[];
+  ports: FacetValue[];
+}
+
+export interface CollectionInfo {
+  _id?: string;
+  name: string;
+  slug: string;
+  description: string;
+}
+
+export interface CollectionData {
+  category: CollectionInfo;
+  /** Only sent with page 1. */
+  facets?: Facets;
+  items: ProductSummary[];
 }
 
 export interface HomeData {

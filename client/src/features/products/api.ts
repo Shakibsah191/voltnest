@@ -1,9 +1,12 @@
 import { api } from '@/shared/api-client';
-import type { Category, HomeData, ProductDetailData, ProductListParams, ProductSummary } from './types';
+import type { Category, CollectionData, HomeData, ProductDetailData, ProductListParams, ProductSummary } from './types';
 
 export const productsApi = {
   list: (params: ProductListParams = {}, signal?: AbortSignal) =>
     api.get<ProductSummary[]>('/products', { ...params }, signal),
+
+  collection: (slug: string, params: ProductListParams = {}, signal?: AbortSignal) =>
+    api.get<CollectionData>(`/categories/${encodeURIComponent(slug)}/products`, { ...params }, signal),
 
   home: (signal?: AbortSignal) => api.get<HomeData>('/home', undefined, signal),
 

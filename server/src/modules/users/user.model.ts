@@ -1,7 +1,10 @@
 import { Schema, model, type InferSchemaType } from 'mongoose';
+import { DELIVERY_ZONES } from '../../shared/delivery';
 
 export const USER_ROLES = ['customer', 'admin'] as const;
-export const DELIVERY_ZONES = ['inside_dhaka', 'outside_dhaka'] as const;
+export type UserRole = (typeof USER_ROLES)[number];
+// zones live in shared/delivery.ts; re-exported here so older imports keep working
+export { DELIVERY_ZONES };
 
 const addressSchema = new Schema(
   {

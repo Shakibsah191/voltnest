@@ -1,4 +1,5 @@
 import { Outlet, ScrollRestoration } from 'react-router-dom';
+import { CartDrawer } from '@/features/cart/CartDrawer';
 import { AnnouncementBar } from './AnnouncementBar';
 import { Header } from './Header';
 import { Footer } from './Footer';
@@ -18,7 +19,9 @@ export function ShopLayout() {
         <Outlet />
       </main>
       <Footer />
-      <ScrollRestoration />
+      <CartDrawer />
+      {/* Key by path only, so changing filters or ?variant= doesn't jump to the top */}
+      <ScrollRestoration getKey={(location) => location.pathname} />
     </div>
   );
 }

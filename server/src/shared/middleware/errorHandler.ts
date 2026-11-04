@@ -18,8 +18,14 @@ export const errorHandler: ErrorRequestHandler = (err, _req, res, _next) => {
   } else if (err instanceof ZodError) {
     status = 400;
     code = 'VALIDATION_ERROR';
-    message = 'Some fields are invalid';
-    details = err.flatten().fieldErrors;
+    message = err.issues[0]?.message ?? 'Some fields are invalid';
+    // { "contact.phone": "Enter a valid…" } so the client can show each message under its field
+    const fields: Record<string, string> = {};
+    for (const issue of err.issues) {
+      const key = issue.path.join('.') || '_';
+      fields[key] ??= issue.message;
+    }
+    details = fields;
   } else if (err instanceof mongoose.Error.CastError) {
     status = 400;
     code = 'INVALID_ID';
