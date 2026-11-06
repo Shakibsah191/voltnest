@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { Check, Copy, PartyPopper } from 'lucide-react';
 import { recallOrder } from '@/features/checkout/hooks';
+import { useAuthStore } from '@/features/auth/auth.store';
 import { buttonClasses } from '@/shared/ui/Button';
 import { formatBDT } from '@/shared/lib/utils';
 import { useDocumentTitle } from '@/shared/lib/useDocumentTitle';
@@ -34,6 +35,7 @@ function CopyButton({ text }: { text: string }) {
 export function OrderSuccessPage() {
   const { orderNumber = '' } = useParams();
   const order = recallOrder(orderNumber);
+  const isLoggedIn = useAuthStore((s) => s.status === 'authenticated');
   useDocumentTitle('Order placed');
 
   const firstName = order?.contact.name.split(/\s+/)[0];
@@ -120,9 +122,15 @@ export function OrderSuccessPage() {
       </div>
 
       <p className="mt-5 text-center text-sm text-ink-muted">
-        Keep the order number handy if you call us about this order.
+        {order ? `A confirmation is on its way to ${order.contact.email}.` : 'Keep the order number handy if you call us about this order.'}
       </p>
-      <div className="mt-6 flex justify-center">
+      <div className="mt-6 flex flex-wrap justify-center gap-3">
+        <Link
+          to={isLoggedIn ? `/account/orders/${orderNumber}` : `/track-order?order=${encodeURIComponent(orderNumber)}`}
+          className={buttonClasses('outline', 'lg')}
+        >
+          {isLoggedIn ? 'View order' : 'Track this order'}
+        </Link>
         <Link to="/collections/all" className={buttonClasses('primary', 'lg')}>
           Continue shopping
         </Link>

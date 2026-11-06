@@ -1,7 +1,7 @@
 import { HandCoins, RotateCcw, ShieldCheck, Truck } from 'lucide-react';
 
 const BADGES = [
-  { Icon: Truck, title: 'Free delivery over ৳3,000', text: 'Anywhere in Bangladesh' },
+  { Icon: Truck, title: 'Delivery from ৳50', text: '৳50 in Rajshahi and Dhaka, ৳120 elsewhere' },
   { Icon: HandCoins, title: 'Cash on Delivery', text: 'Pay when it arrives, anywhere in Bangladesh' },
   { Icon: ShieldCheck, title: '18-month warranty', text: 'On every VoltNest product' },
   { Icon: RotateCcw, title: '7-day returns', text: 'Changed your mind? Send it back' },

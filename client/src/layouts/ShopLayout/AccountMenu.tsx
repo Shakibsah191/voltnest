@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { LogOut, User, UserRound } from 'lucide-react';
+import { LogOut, Package, User, UserRound } from 'lucide-react';
 import { useAuthStore } from '@/features/auth/auth.store';
 import { useLogout } from '@/features/auth/hooks';
 
@@ -68,6 +68,10 @@ export function AccountMenu() {
           <Link role="menuitem" to="/account" className="flex items-center gap-3 rounded-md px-3 py-2.5 text-sm hover:bg-surface-muted">
             <UserRound className="h-4 w-4 text-ink-muted" aria-hidden />
             My account
+          </Link>
+          <Link role="menuitem" to="/account/orders" className="flex items-center gap-3 rounded-md px-3 py-2.5 text-sm hover:bg-surface-muted">
+            <Package className="h-4 w-4 text-ink-muted" aria-hidden />
+            My orders
           </Link>
           <button
             role="menuitem"

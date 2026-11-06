@@ -2,7 +2,7 @@ import { Schema, model, Types, type InferSchemaType } from 'mongoose';
 
 export const REVIEW_STATUSES = ['published', 'hidden'] as const;
 
-/** Only customers with a delivered order for the product can review it (enforced on Day 4). */
+/** Only customers with a delivered order for the product can review it (see review.service.ts). */
 const reviewSchema = new Schema(
   {
     product: { type: Types.ObjectId, ref: 'Product', required: true },
@@ -17,7 +17,8 @@ const reviewSchema = new Schema(
 );
 
 reviewSchema.index({ product: 1, status: 1, createdAt: -1 });
-reviewSchema.index({ user: 1, product: 1, order: 1 }, { unique: true });
+// one review per customer per product
+reviewSchema.index({ user: 1, product: 1 }, { unique: true });
 
 export type Review = InferSchemaType<typeof reviewSchema>;
 export const ReviewModel = model('Review', reviewSchema);

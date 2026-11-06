@@ -3,7 +3,7 @@ import { useCategories } from '@/features/products/hooks';
 import { Logo } from './Logo';
 
 const HELP_LINKS = [
-  { label: 'Track your order', to: '/account/orders' },
+  { label: 'Track your order', to: '/track-order' },
   { label: 'Shipping and delivery', to: '/pages/shipping' },
   { label: 'Returns and refunds', to: '/pages/returns' },
   { label: 'Warranty', to: '/pages/warranty' },

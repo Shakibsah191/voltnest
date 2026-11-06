@@ -2,7 +2,6 @@ import mongoose, { Types } from 'mongoose';
 import { AppError } from '../../shared/errors/AppError';
 import {
   DELIVERY_OPTIONS,
-  FREE_DELIVERY_THRESHOLD,
   deliveryChargeFor,
   expectedDeliveryDateFor,
   publicDeliveryOptions,
@@ -11,7 +10,8 @@ import { CartModel } from '../carts/cart.model';
 import type { CartOwner } from '../carts/cart.service';
 import { ProductModel } from '../products/product.model';
 import { UserModel } from '../users/user.model';
-import { OrderModel } from './order.model';
+import { ReviewModel } from '../reviews/review.model';
+import { OrderModel, ORDER_STATUSES } from './order.model';
 import { generateOrderNumber } from './order-number';
 import type { CreateOrderInput } from './order.schemas';
 
@@ -38,8 +38,59 @@ export interface OrderConfirmation {
   expectedDeliveryDate: string;
   deliveryZone: { id: string; label: string };
   contact: { name: string; email: string; phone: string };
+  shippingAddress: { line1: string; area: string; city: string; postcode: string };
   items: { name: string; variantName: string; image: string; quantity: number; unitPrice: number; lineTotal: number }[];
   createdAt: string;
+}
+
+export type OrderStatus = (typeof ORDER_STATUSES)[number];
+
+/** One row in "My orders". */
+export interface OrderSummary {
+  orderNumber: string;
+  status: string;
+  paymentMethod: string;
+  paymentStatus: string;
+  total: number;
+  itemCount: number;
+  images: string[];
+  createdAt: string;
+  expectedDeliveryDate: string;
+  deliveredAt: string | null;
+}
+
+/** The order page: the confirmation plus its history and review state. Still no costs. */
+export interface OrderDetail extends Omit<OrderConfirmation, 'items'> {
+  customerNote: string;
+  deliveredAt: string | null;
+  courier: { name: string; trackingNumber: string } | null;
+  statusHistory: { status: string; note: string; at: string }[];
+  items: (OrderConfirmation['items'][number] & {
+    productId: string;
+    productSlug: string | null;
+    variantSku: string;
+    reviewed: boolean;
+  })[];
+  /** true when the viewer is the logged-in owner and the order was delivered */
+  canReview: boolean;
+}
+
+/** Who is asking to see an order. */
+export interface OrderViewer {
+  userId?: string;
+  role?: 'customer' | 'admin';
+  /** guests prove it's their order with the phone number used at checkout */
+  phone?: string;
+}
+
+const FORWARD_FLOW: OrderStatus[] = ['pending', 'confirmed', 'processing', 'shipped', 'delivered'];
+
+/** Which status changes make sense. Moving forward may skip steps (pending → shipped is fine). */
+export function canMoveTo(current: OrderStatus, next: OrderStatus): boolean {
+  if (current === next || current === 'cancelled' || current === 'returned') return false;
+  if (next === 'cancelled') return ['pending', 'confirmed', 'processing'].includes(current);
+  if (next === 'returned') return ['shipped', 'delivered'].includes(current);
+  return FORWARD_FLOW.indexOf(next) > FORWARD_FLOW.indexOf(current);
 }
 
 interface StockProblem {
@@ -62,6 +113,12 @@ function toConfirmation(order: OrderDoc): OrderConfirmation {
     expectedDeliveryDate: order.expectedDeliveryDate.toISOString(),
     deliveryZone: { id: zone, label: DELIVERY_OPTIONS[zone]?.label ?? zone },
     contact: { name: order.contact!.name, email: order.contact!.email, phone: order.contact!.phone },
+    shippingAddress: {
+      line1: order.shippingAddress!.line1,
+      area: order.shippingAddress!.area ?? '',
+      city: order.shippingAddress!.city,
+      postcode: order.shippingAddress!.postcode ?? '',
+    },
     items: order.items.map((i) => ({
       name: i.name,
       variantName: i.variantName,
@@ -87,10 +144,9 @@ export const orderService = {
   checkoutOptions() {
     return {
       zones: publicDeliveryOptions(),
-      freeDeliveryThreshold: FREE_DELIVERY_THRESHOLD,
       paymentMethods: [
         { id: 'cod', label: 'Cash on Delivery', description: 'Pay in cash when your order arrives', available: true },
-        { id: 'sslcommerz', label: 'Card, bKash or Nagad', description: 'Online payment, coming soon', available: false },
+        { id: 'sslcommerz', label: 'Card, bKash or Nagad', description: 'Pay online through SSLCommerz', available: false },
       ],
     };
   },
@@ -167,7 +223,7 @@ export const orderService = {
         const subtotal = items.reduce((sum, l) => sum + l.lineTotal, 0);
         const totalCost = items.reduce((sum, l) => sum + l.unitCost * l.quantity, 0);
         const zone = input.shippingAddress.zone;
-        const deliveryCharge = deliveryChargeFor(zone, subtotal);
+        const deliveryCharge = deliveryChargeFor(zone);
         const now = new Date();
 
         const [created] = await OrderModel.create(
@@ -221,6 +277,127 @@ export const orderService = {
       });
 
       return toConfirmation(order!);
+    } finally {
+      await session.endSession();
+    }
+  },
+
+  /** "My orders": newest first. */
+  async listMine(userId: string, page: number, limit: number) {
+    const filter = { user: new Types.ObjectId(userId) };
+    const [orders, total] = await Promise.all([
+      OrderModel.find(filter)
+        .sort({ createdAt: -1 })
+        .skip((page - 1) * limit)
+        .limit(limit)
+        .select('orderNumber status paymentMethod paymentStatus total items.image items.quantity createdAt expectedDeliveryDate deliveredAt')
+        .lean(),
+      OrderModel.countDocuments(filter),
+    ]);
+    const items: OrderSummary[] = orders.map((o) => ({
+      orderNumber: o.orderNumber,
+      status: o.status,
+      paymentMethod: o.paymentMethod,
+      paymentStatus: o.paymentStatus,
+      total: o.total,
+      itemCount: o.items.reduce((s, i) => s + i.quantity, 0),
+      images: o.items.slice(0, 3).map((i) => i.image ?? ''),
+      createdAt: (o as { createdAt: Date }).createdAt.toISOString(),
+      expectedDeliveryDate: o.expectedDeliveryDate.toISOString(),
+      deliveredAt: o.deliveredAt ? o.deliveredAt.toISOString() : null,
+    }));
+    return { items, meta: { page, limit, total, totalPages: Math.max(1, Math.ceil(total / limit)) } };
+  },
+
+  /**
+   * One order, if this viewer may see it: its owner, an admin, or a guest who
+   * gives the phone number used at checkout. Anyone else gets "not found", so
+   * order numbers can't be used to discover other people's orders.
+   */
+  async getForViewer(orderNumber: string, viewer: OrderViewer): Promise<OrderDetail> {
+    const notFound = AppError.notFound('We couldn’t find an order with that number and phone number');
+    const order = await OrderModel.findOne({ orderNumber: orderNumber.trim().toUpperCase() });
+    if (!order) throw notFound;
+
+    const isOwner = Boolean(viewer.userId && order.user && String(order.user) === viewer.userId);
+    const isAdmin = viewer.role === 'admin';
+    const phoneMatches = Boolean(viewer.phone && viewer.phone === order.contact?.phone);
+    if (!isOwner && !isAdmin && !phoneMatches) throw notFound;
+
+    const productIds = order.items.map((i) => i.product);
+    const [products, reviews] = await Promise.all([
+      ProductModel.find({ _id: { $in: productIds } }).select('slug').lean<{ _id: Types.ObjectId; slug: string }[]>(),
+      isOwner
+        ? ReviewModel.find({ user: order.user, product: { $in: productIds } }).select('product').lean()
+        : Promise.resolve([] as { product: Types.ObjectId }[]),
+    ]);
+    const slugOf = new Map(products.map((p) => [String(p._id), p.slug]));
+    const reviewed = new Set(reviews.map((r) => String(r.product)));
+
+    const base = toConfirmation(order);
+    return {
+      ...base,
+      customerNote: order.customerNote ?? '',
+      deliveredAt: order.deliveredAt ? order.deliveredAt.toISOString() : null,
+      courier: order.courier?.name ? { name: order.courier.name, trackingNumber: order.courier.trackingNumber ?? '' } : null,
+      statusHistory: order.statusHistory.map((e) => ({ status: e.status, note: e.note ?? '', at: e.at.toISOString() })),
+      items: order.items.map((i, idx) => ({
+        ...base.items[idx]!,
+        productId: String(i.product),
+        productSlug: slugOf.get(String(i.product)) ?? null,
+        variantSku: i.variantSku,
+        reviewed: reviewed.has(String(i.product)),
+      })),
+      canReview: isOwner && order.status === 'delivered',
+    };
+  },
+
+  /**
+   * Move an order to a new status and log it in statusHistory.
+   * Used by the order:status command now and by the admin panel on Day 5.
+   * Cancelling puts the stock back. A delivered COD order counts as paid.
+   */
+  async updateStatus(
+    orderNumber: string,
+    next: OrderStatus,
+    opts: { note?: string; changedBy?: string } = {},
+  ): Promise<{ orderNumber: string; status: OrderStatus; previousStatus: OrderStatus }> {
+    const session = await mongoose.startSession();
+    try {
+      let result: { orderNumber: string; status: OrderStatus; previousStatus: OrderStatus } | undefined;
+      await session.withTransaction(async () => {
+        const order = await OrderModel.findOne({ orderNumber: orderNumber.trim().toUpperCase() }).session(session);
+        if (!order) throw AppError.notFound(`No order called ${orderNumber}`);
+        const current = order.status as OrderStatus;
+        if (!canMoveTo(current, next)) {
+          throw AppError.badRequest(`An order that is ${current} can’t be changed to ${next}`);
+        }
+
+        const now = new Date();
+        if (next === 'cancelled') {
+          for (const item of order.items) {
+            await ProductModel.updateOne(
+              { _id: item.product, 'variants.sku': item.variantSku },
+              { $inc: { 'variants.$.stock': item.quantity, totalStock: item.quantity, salesCount: -item.quantity } },
+              { session },
+            );
+          }
+        }
+        if (next === 'delivered') {
+          order.deliveredAt = now;
+          if (order.paymentMethod === 'cod') order.paymentStatus = 'paid'; // cash collected at the door
+        }
+        order.status = next;
+        order.statusHistory.push({
+          status: next,
+          note: opts.note ?? '',
+          changedBy: opts.changedBy ? new Types.ObjectId(opts.changedBy) : undefined,
+          at: now,
+        });
+        await order.save({ session });
+        result = { orderNumber: order.orderNumber, status: next, previousStatus: current };
+      });
+      return result!;
     } finally {
       await session.endSession();
     }

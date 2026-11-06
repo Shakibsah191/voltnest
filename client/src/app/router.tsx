@@ -11,6 +11,9 @@ import { RegisterPage } from '@/pages/RegisterPage';
 import { AccountPage } from '@/pages/AccountPage';
 import { CheckoutPage } from '@/pages/CheckoutPage';
 import { OrderSuccessPage } from '@/pages/OrderSuccessPage';
+import { MyOrdersPage } from '@/pages/MyOrdersPage';
+import { OrderDetailPage } from '@/pages/OrderDetailPage';
+import { TrackOrderPage } from '@/pages/TrackOrderPage';
 import { NotFoundPage } from '@/pages/NotFoundPage';
 
 export const router = createBrowserRouter([
@@ -31,6 +34,23 @@ export const router = createBrowserRouter([
           </RequireAuth>
         ),
       },
+      {
+        path: 'account/orders',
+        element: (
+          <RequireAuth>
+            <MyOrdersPage />
+          </RequireAuth>
+        ),
+      },
+      {
+        path: 'account/orders/:orderNumber',
+        element: (
+          <RequireAuth>
+            <OrderDetailPage />
+          </RequireAuth>
+        ),
+      },
+      { path: 'track-order', element: <TrackOrderPage /> },
       { path: 'order-confirmed/:orderNumber', element: <OrderSuccessPage /> },
       { path: '*', element: <NotFoundPage /> },
     ],

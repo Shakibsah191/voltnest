@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 
 const MESSAGES = [
-  'Free delivery anywhere in Bangladesh on orders over ৳3,000',
+  'Delivery ৳50 in Rajshahi and Dhaka, ৳120 anywhere else',
   'Cash on Delivery available across Bangladesh',
   '18-month warranty on every VoltNest product',
 ];

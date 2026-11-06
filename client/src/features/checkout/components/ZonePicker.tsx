@@ -5,15 +5,14 @@ interface ZonePickerProps {
   zones: DeliveryZoneOption[];
   value: string;
   onChange: (zoneId: string) => void;
-  freeDelivery: boolean;
   error?: string;
 }
 
-export function ZonePicker({ zones, value, onChange, freeDelivery, error }: ZonePickerProps) {
+export function ZonePicker({ zones, value, onChange, error }: ZonePickerProps) {
   return (
     <fieldset aria-describedby={error ? 'zone-error' : undefined}>
       <legend className="mb-2 text-sm font-medium">Delivery area</legend>
-      <div className="grid gap-3 sm:grid-cols-2">
+      <div className="grid gap-3 sm:grid-cols-3">
         {zones.map((z) => {
           const checked = value === z.id;
           return (
@@ -40,16 +39,7 @@ export function ZonePicker({ zones, value, onChange, freeDelivery, error }: Zone
                   {z.minDays} to {z.maxDays} days
                 </span>
               </span>
-              <span className="shrink-0 text-right font-semibold tabular-nums">
-                {freeDelivery ? (
-                  <>
-                    <span className="text-success">Free</span>
-                    <s className="block text-xs font-normal text-ink-subtle">{formatBDT(z.charge)}</s>
-                  </>
-                ) : (
-                  formatBDT(z.charge)
-                )}
-              </span>
+              <span className="shrink-0 text-right font-semibold tabular-nums">{formatBDT(z.charge)}</span>
             </label>
           );
         })}

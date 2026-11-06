@@ -21,9 +21,10 @@ export function CartDrawer() {
   const setQuantity = useSetCartQuantity();
   const remove = useRemoveCartItem();
 
-  const threshold = options?.freeDeliveryThreshold ?? 3000;
-  const remaining = threshold - cart.subtotal;
-  const progress = Math.min(100, (cart.subtotal / threshold) * 100);
+  // e.g. "Delivery: ৳50 in Rajshahi, ৳50 in Dhaka, ৳120 elsewhere"
+  const deliveryNote = options?.zones
+    .map((z) => `${formatBDT(z.charge)} ${z.id === 'outside_rajshahi' ? 'elsewhere' : z.label.replace(/^Inside /, 'in ')}`)
+    .join(', ');
   const lines = cart.items;
   const mutationError = setQuantity.error ?? remove.error;
 
@@ -84,21 +85,14 @@ export function CartDrawer() {
         </div>
       ) : (
         <>
-          <div className="border-b border-line bg-surface-muted px-5 py-4">
-            <p className="flex items-center gap-2 text-sm">
-              <Truck className="h-4 w-4 shrink-0 text-brand" aria-hidden />
-              {remaining > 0 ? (
-                <span>
-                  Add <strong className="tabular-nums">{formatBDT(remaining)}</strong> more for free delivery
-                </span>
-              ) : (
-                <span className="font-medium text-success">Your order gets free delivery</span>
-              )}
-            </p>
-            <div className="mt-3 h-1.5 overflow-hidden rounded-pill bg-surface-sunken" aria-hidden>
-              <div className="h-full rounded-pill bg-brand transition-[width] duration-300" style={{ width: `${progress}%` }} />
+          {deliveryNote && (
+            <div className="border-b border-line bg-surface-muted px-5 py-3.5">
+              <p className="flex items-center gap-2 text-sm">
+                <Truck className="h-4 w-4 shrink-0 text-brand" aria-hidden />
+                <span>Delivery: {deliveryNote}</span>
+              </p>
             </div>
-          </div>
+          )}
 
           {(cart.notices.length > 0 || mutationError) && (
             <div className="space-y-2 px-5 pt-4">

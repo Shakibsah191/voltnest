@@ -123,8 +123,7 @@ export function CheckoutPage() {
     );
   }
 
-  const freeDelivery = cart.subtotal >= options!.freeDeliveryThreshold;
-  const deliveryCharge = fields.zone ? deliveryChargeFor(options, fields.zone, cart.subtotal) : null;
+  const deliveryCharge = fields.zone ? deliveryChargeFor(options, fields.zone) : null;
   const total = cart.subtotal + (deliveryCharge ?? 0);
 
   const focusField = (name: FieldName) => {
@@ -225,19 +224,16 @@ export function CheckoutPage() {
               <ZonePicker
                 zones={options!.zones}
                 value={fields.zone}
-                freeDelivery={freeDelivery}
                 error={errors.zone}
                 onChange={(zone) => {
                   set('zone', zone);
-                  // inside the home city, the city is obvious
-                  if (zone === 'inside_rajshahi' && !fields.city.trim()) set('city', 'Rajshahi');
+                  // inside a city zone, the city is obvious
+                  if (!fields.city.trim()) {
+                    if (zone === 'inside_rajshahi') set('city', 'Rajshahi');
+                    if (zone === 'inside_dhaka') set('city', 'Dhaka');
+                  }
                 }}
               />
-              {!freeDelivery && (
-                <p className="mt-3 text-sm text-ink-muted">
-                  Add {formatBDT(options!.freeDeliveryThreshold - cart.subtotal)} more to get free delivery.
-                </p>
-              )}
             </div>
             <TextAreaField
               id="co-note"

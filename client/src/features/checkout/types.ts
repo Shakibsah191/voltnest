@@ -16,7 +16,6 @@ export interface PaymentMethodOption {
 
 export interface CheckoutOptions {
   zones: DeliveryZoneOption[];
-  freeDeliveryThreshold: number;
   paymentMethods: PaymentMethodOption[];
 }
 
@@ -40,6 +39,7 @@ export interface OrderConfirmation {
   expectedDeliveryDate: string;
   deliveryZone: { id: string; label: string };
   contact: { name: string; email: string; phone: string };
+  shippingAddress: { line1: string; area: string; city: string; postcode: string };
   items: { name: string; variantName: string; image: string; quantity: number; unitPrice: number; lineTotal: number }[];
   createdAt: string;
 }

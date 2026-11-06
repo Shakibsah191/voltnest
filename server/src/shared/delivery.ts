@@ -4,7 +4,7 @@
  * orders.service uses them to price every order. Change a number here and
  * both follow. Adding a zone = add a key to DELIVERY_ZONES and to DELIVERY_OPTIONS.
  */
-export const DELIVERY_ZONES = ['inside_rajshahi', 'outside_rajshahi'] as const;
+export const DELIVERY_ZONES = ['inside_rajshahi', 'inside_dhaka', 'outside_rajshahi'] as const;
 export type DeliveryZone = (typeof DELIVERY_ZONES)[number];
 
 export interface DeliveryOption {
@@ -15,6 +15,11 @@ export interface DeliveryOption {
   maxDays: number;
 }
 
+/**
+ * Every order pays its zone's charge. There is no free delivery.
+ * "outside_rajshahi" keeps its old key so orders already saved with it stay valid;
+ * customers see the label, which now reads "Outside Rajshahi and Dhaka".
+ */
 export const DELIVERY_OPTIONS: Record<DeliveryZone, DeliveryOption> = {
   inside_rajshahi: {
     label: 'Inside Rajshahi',
@@ -23,8 +28,15 @@ export const DELIVERY_OPTIONS: Record<DeliveryZone, DeliveryOption> = {
     minDays: 1,
     maxDays: 2,
   },
+  inside_dhaka: {
+    label: 'Inside Dhaka',
+    description: 'Dhaka city and its thanas',
+    charge: 50,
+    minDays: 2,
+    maxDays: 3,
+  },
   outside_rajshahi: {
-    label: 'Outside Rajshahi',
+    label: 'Outside Rajshahi and Dhaka',
     description: 'Anywhere else in Bangladesh',
     charge: 120,
     minDays: 3,
@@ -32,11 +44,8 @@ export const DELIVERY_OPTIONS: Record<DeliveryZone, DeliveryOption> = {
   },
 };
 
-/** Orders with a subtotal at or above this get free delivery in every zone (BDT). */
-export const FREE_DELIVERY_THRESHOLD = 3000;
-
-export function deliveryChargeFor(zone: DeliveryZone, subtotal: number): number {
-  return subtotal >= FREE_DELIVERY_THRESHOLD ? 0 : DELIVERY_OPTIONS[zone].charge;
+export function deliveryChargeFor(zone: DeliveryZone): number {
+  return DELIVERY_OPTIONS[zone].charge;
 }
 
 const DHAKA_OFFSET_MS = 6 * 60 * 60 * 1000; // Bangladesh is UTC+6, no daylight saving

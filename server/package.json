@@ -2,14 +2,16 @@
   "name": "voltnest-server",
   "version": "0.1.0",
   "private": true,
-  "description": "VoltNest API — Express + TypeScript + MongoDB",
+  "description": "VoltNest API \u2014 Express + TypeScript + MongoDB",
   "main": "dist/server.js",
   "scripts": {
     "dev": "tsx watch src/server.ts",
     "build": "tsc",
     "start": "node dist/server.js",
     "seed": "tsx src/seed/seed.ts",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "order:status": "tsx src/scripts/order-status.ts",
+    "test": "vitest run"
   },
   "engines": {
     "node": ">=20"
@@ -35,7 +37,11 @@
     "@types/jsonwebtoken": "^9.0.10",
     "@types/morgan": "^1.9.10",
     "@types/node": "^20.19.43",
+    "@types/supertest": "^7.2.1",
+    "mongodb-memory-server": "^11.3.0",
+    "supertest": "^7.3.1",
     "tsx": "^4.23.15",
-    "typescript": "~5.7.2"
+    "typescript": "~5.7.2",
+    "vitest": "^3.2.7"
   }
 }

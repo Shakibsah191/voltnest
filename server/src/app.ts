@@ -3,7 +3,7 @@ import cors from 'cors';
 import helmet from 'helmet';
 import morgan from 'morgan';
 import cookieParser from 'cookie-parser';
-import { clientOrigins, isProd } from './config/env';
+import { clientOrigins, env, isProd } from './config/env';
 import { v1Router } from './routes/v1';
 import { notFound } from './shared/middleware/notFound';
 import { errorHandler } from './shared/middleware/errorHandler';
@@ -17,7 +17,7 @@ app.use(helmet());
 app.use(cors({ origin: clientOrigins, credentials: true }));
 app.use(express.json({ limit: '1mb' }));
 app.use(cookieParser());
-app.use(morgan(isProd ? 'combined' : 'dev'));
+if (env.NODE_ENV !== 'test') app.use(morgan(isProd ? 'combined' : 'dev')); // quiet during npm test
 
 app.get('/', (_req, res) => {
   res.json({ success: true, data: { name: 'VoltNest API', docs: '/api/v1/health' } });

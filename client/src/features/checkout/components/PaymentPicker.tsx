@@ -34,7 +34,7 @@ export function PaymentPicker({ methods, total }: { methods: PaymentMethodOption
                 <span className="block font-medium text-ink">{m.label}</span>
                 <span className="block text-sm">{m.id === 'cod' ? `Pay ${total} in cash when your order arrives` : m.description}</span>
               </span>
-              {!m.available && <Badge>Soon</Badge>}
+              {!m.available && <Badge className="shrink-0">Not available yet</Badge>}
             </label>
           );
         })}

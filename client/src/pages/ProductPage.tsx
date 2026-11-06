@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useParams, useSearchParams } from 'react-router-dom';
-import { Check, HandCoins, ShieldCheck, ShoppingBag, Star, Truck } from 'lucide-react';
+import { Check, HandCoins, ShieldCheck, ShoppingBag, Truck } from 'lucide-react';
 import { useProduct } from '@/features/products/hooks';
 import { ProductGallery } from '@/features/products/components/ProductGallery';
 import { VariantPicker } from '@/features/products/components/VariantPicker';
@@ -8,6 +8,9 @@ import { ProductGrid } from '@/features/products/components/ProductGrid';
 import { MAX_PER_LINE } from '@/features/cart/cart.store';
 import { useAddToCart } from '@/features/cart/hooks';
 import { useCheckoutOptions } from '@/features/checkout/hooks';
+import { useProductReviews } from '@/features/reviews/hooks';
+import { ProductReviews } from '@/features/reviews/components/ProductReviews';
+import { Stars } from '@/features/reviews/components/Stars';
 import { ApiError } from '@/shared/api-client';
 import { Badge } from '@/shared/ui/Badge';
 import { Breadcrumbs } from '@/shared/ui/Breadcrumbs';
@@ -33,9 +36,23 @@ function DeliveryLine() {
   if (!data) return <span>Delivery anywhere in Bangladesh.</span>;
   return (
     <span>
-      {data.zones.map((z) => `${z.label}: ${z.minDays} to ${z.maxDays} days, ${formatBDT(z.charge)}.`).join(' ')} Free delivery over{' '}
-      {formatBDT(data.freeDeliveryThreshold)}.
+      {data.zones.map((z) => `${z.label}: ${z.minDays} to ${z.maxDays} days, ${formatBDT(z.charge)}.`).join(' ')}
     </span>
+  );
+}
+
+/** Real reviews only (the summary comes from the same request as the reviews list below). */
+function RatingLine({ slug }: { slug: string }) {
+  const summary = useProductReviews(slug).data?.pages[0]?.data.summary;
+  if (!summary || summary.count === 0) return null;
+  return (
+    <a href="#reviews" className="mt-2 inline-flex items-center gap-2 text-sm text-ink-muted hover:text-ink">
+      <Stars value={summary.average} />
+      <span className="font-semibold text-ink">{summary.average.toFixed(1)}</span>
+      <span className="underline-offset-2 hover:underline">
+        {summary.count} {summary.count === 1 ? 'review' : 'reviews'}
+      </span>
+    </a>
   );
 }
 
@@ -130,13 +147,7 @@ export function ProductPage() {
             {product.salesCount >= 600 && <Badge tone="bestseller">Bestseller</Badge>}
           </div>
           <h1 className="mt-3 text-2xl font-bold sm:text-3xl">{product.name}</h1>
-          {product.ratingCount > 0 && (
-            <p className="mt-2 flex items-center gap-1.5 text-sm text-ink-muted">
-              <Star className="h-4 w-4 fill-ink text-ink" aria-hidden />
-              <span className="font-semibold text-ink">{product.ratingAvg.toFixed(1)}</span>
-              ({product.ratingCount} reviews)
-            </p>
-          )}
+          <RatingLine slug={product.slug} />
           <p className="mt-3 text-ink-muted">{product.shortDescription}</p>
 
           <Price amount={selected.price} compareAt={selected.compareAtPrice} size="lg" className="mt-6" />
@@ -212,6 +223,13 @@ export function ProductPage() {
           </dl>
         </section>
       </div>
+
+      <section id="reviews" aria-labelledby="reviews-title" className="mt-16 scroll-mt-24 border-t border-line pt-12">
+        <h2 id="reviews-title" className="mb-6 text-2xl font-bold">
+          Customer reviews
+        </h2>
+        <ProductReviews slug={product.slug} />
+      </section>
 
       {data.related.length > 0 && (
         <section aria-labelledby="related-title" className="mt-16">
