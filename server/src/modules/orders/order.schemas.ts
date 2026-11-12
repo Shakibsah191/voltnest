@@ -17,21 +17,21 @@ export const createOrderSchema = z.object({
   }),
   shippingAddress: z.object({
     line1: z
-      .string({ required_error: 'Enter your address' })
+      .string({ error: 'Enter your address' })
       .trim()
       .min(5, 'Enter your house, road and area')
       .max(200, 'Address is too long'),
     area: optionalText(80),
-    city: z.string({ required_error: 'Enter your city or district' }).trim().min(2, 'Enter your city or district').max(60),
+    city: z.string({ error: 'Enter your city or district' }).trim().min(2, 'Enter your city or district').max(60),
     postcode: z
       .string()
       .trim()
       .regex(/^(\d{4})?$/, 'Postcode is 4 digits, or leave it empty')
       .optional()
       .default(''),
-    zone: z.enum(DELIVERY_ZONES, { errorMap: () => ({ message: 'Choose your delivery area' }) }),
+    zone: z.enum(DELIVERY_ZONES, { error: 'Choose your delivery area' }),
   }),
-  paymentMethod: z.enum(PAYMENT_METHODS, { errorMap: () => ({ message: 'Choose a payment method' }) }),
+  paymentMethod: z.enum(PAYMENT_METHODS, { error: 'Choose a payment method' }),
   note: optionalText(500),
   /** Logged-in users: keep this address for next time (only if they have none yet). */
   saveAddress: z.boolean().optional().default(true),

@@ -9,7 +9,7 @@ import {
 import { CartModel } from '../carts/cart.model';
 import type { CartOwner } from '../carts/cart.service';
 import { ProductModel } from '../products/product.model';
-import { UserModel } from '../users/user.model';
+import { UserModel, type UserRole } from '../users/user.model';
 import { ReviewModel } from '../reviews/review.model';
 import { OrderModel, ORDER_STATUSES } from './order.model';
 import { generateOrderNumber } from './order-number';
@@ -78,9 +78,28 @@ export interface OrderDetail extends Omit<OrderConfirmation, 'items'> {
 /** Who is asking to see an order. */
 export interface OrderViewer {
   userId?: string;
-  role?: 'customer' | 'admin';
+  role?: UserRole;
   /** guests prove it's their order with the phone number used at checkout */
   phone?: string;
+}
+
+export interface StatusUpdateOptions {
+  note?: string;
+  changedBy?: string;
+  /** e.g. when shipping: who carries it and their tracking number */
+  courier?: { name: string; trackingNumber?: string };
+  /** a new promise date, if the old one won't be met */
+  expectedDeliveryDate?: Date;
+}
+
+export interface StatusUpdateResult {
+  orderNumber: string;
+  status: OrderStatus;
+  previousStatus: OrderStatus;
+  note: string;
+  courier: { name: string; trackingNumber: string } | null;
+  /** fresh copy for the status email */
+  order: OrderConfirmation;
 }
 
 const FORWARD_FLOW: OrderStatus[] = ['pending', 'confirmed', 'processing', 'shipped', 'delivered'];
@@ -360,11 +379,11 @@ export const orderService = {
   async updateStatus(
     orderNumber: string,
     next: OrderStatus,
-    opts: { note?: string; changedBy?: string } = {},
-  ): Promise<{ orderNumber: string; status: OrderStatus; previousStatus: OrderStatus }> {
+    opts: StatusUpdateOptions = {},
+  ): Promise<StatusUpdateResult> {
     const session = await mongoose.startSession();
     try {
-      let result: { orderNumber: string; status: OrderStatus; previousStatus: OrderStatus } | undefined;
+      let result: StatusUpdateResult | undefined;
       await session.withTransaction(async () => {
         const order = await OrderModel.findOne({ orderNumber: orderNumber.trim().toUpperCase() }).session(session);
         if (!order) throw AppError.notFound(`No order called ${orderNumber}`);
@@ -383,6 +402,10 @@ export const orderService = {
             );
           }
         }
+        if (opts.courier?.name) {
+          order.courier = { name: opts.courier.name, trackingNumber: opts.courier.trackingNumber ?? '' };
+        }
+        if (opts.expectedDeliveryDate) order.expectedDeliveryDate = opts.expectedDeliveryDate;
         if (next === 'delivered') {
           order.deliveredAt = now;
           if (order.paymentMethod === 'cod') order.paymentStatus = 'paid'; // cash collected at the door
@@ -395,7 +418,14 @@ export const orderService = {
           at: now,
         });
         await order.save({ session });
-        result = { orderNumber: order.orderNumber, status: next, previousStatus: current };
+        result = {
+          orderNumber: order.orderNumber,
+          status: next,
+          previousStatus: current,
+          note: opts.note ?? '',
+          courier: order.courier?.name ? { name: order.courier.name, trackingNumber: order.courier.trackingNumber ?? '' } : null,
+          order: toConfirmation(order),
+        };
       });
       return result!;
     } finally {

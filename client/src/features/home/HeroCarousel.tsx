@@ -12,19 +12,14 @@ interface Slide {
   cta: { label: string; to: string };
   secondary: { label: string; to: string };
   theme: 'blue' | 'dark' | 'sand';
+  /** Photo served from client/public/images/hero/ */
+  image: string;
+  imageAlt: string;
+  /** Drawn illustration shown only if the photo file is missing */
   Art: ComponentType;
 }
 
 const SLIDES: Slide[] = [
-  {
-    eyebrow: 'VoltNest Vertex 65W',
-    title: 'One charger for your laptop, phone and watch',
-    text: '65W of GaN power from a body smaller than a deck of cards.',
-    cta: { label: 'Shop chargers', to: '/collections/chargers' },
-    secondary: { label: 'See the Vertex 65W', to: '/products/voltnest-vertex-65w-3-port-gan-charger' },
-    theme: 'blue',
-    Art: ChargerArt,
-  },
   {
     eyebrow: 'VoltNest Flux 20000',
     title: 'Keep everything running through power cuts',
@@ -32,7 +27,20 @@ const SLIDES: Slide[] = [
     cta: { label: 'Shop power banks', to: '/collections/power-banks' },
     secondary: { label: 'See the Flux 20000', to: '/products/voltnest-flux-20000-power-bank' },
     theme: 'dark',
+    image: '/images/hero/hero-2.jpg',
+    imageAlt: 'A portable battery powering devices on a wooden table',
     Art: PowerBankArt,
+  },
+  {
+    eyebrow: 'VoltNest Vertex 65W',
+    title: 'One charger for your laptop, phone and watch',
+    text: '65W of GaN power from a body smaller than a deck of cards.',
+    cta: { label: 'Shop chargers', to: '/collections/chargers' },
+    secondary: { label: 'See the Vertex 65W', to: '/products/voltnest-vertex-65w-3-port-gan-charger' },
+    theme: 'blue',
+    image: '/images/hero/hero-1.jpg',
+    imageAlt: 'A compact white charger on a desk, ready to power a laptop and phone',
+    Art: ChargerArt,
   },
   {
     eyebrow: 'VoltNest Echo Buds Pro',
@@ -41,6 +49,8 @@ const SLIDES: Slide[] = [
     cta: { label: 'Shop audio', to: '/collections/audio' },
     secondary: { label: 'See the Echo Buds Pro', to: '/products/voltnest-echo-buds-pro-anc-earbuds' },
     theme: 'sand',
+    image: '/images/hero/hero-3.jpg',
+    imageAlt: 'Black wireless earbuds resting in their charging case',
     Art: EarbudsArt,
   },
 ];
@@ -56,6 +66,7 @@ const AUTOPLAY_MS = 6000;
 export function HeroCarousel() {
   const [index, setIndex] = useState(0);
   const [paused, setPaused] = useState(false);
+  const [failed, setFailed] = useState<Record<number, boolean>>({});
   const dragStart = useRef<number | null>(null);
   const count = SLIDES.length;
 
@@ -106,7 +117,7 @@ export function HeroCarousel() {
               aria-hidden={!active}
               className={cn('w-full shrink-0', t.bg, t.text)}
             >
-              <div className="grid min-h-[30rem] items-center gap-6 px-6 pb-20 pt-10 sm:px-10 md:min-h-[26rem] md:grid-cols-[1.1fr_1fr] md:pb-24 md:pt-14 lg:px-16">
+              <div className="grid min-h-[30rem] items-center gap-8 px-6 pb-20 pt-10 sm:px-10 md:min-h-[26rem] md:grid-cols-[1.1fr_1fr] md:pb-24 md:pt-14 lg:px-16">
                 <div className="max-w-xl">
                   <p className={cn('text-sm font-semibold', t.eyebrow)}>{s.eyebrow}</p>
                   <h2 className="mt-3 text-3xl font-bold sm:text-4xl lg:text-5xl">{s.title}</h2>
@@ -128,8 +139,26 @@ export function HeroCarousel() {
                     </Link>
                   </div>
                 </div>
-                <div className={cn('mx-auto h-48 w-48 sm:h-64 sm:w-64 md:h-80 md:w-80', t.art)}>
-                  <s.Art />
+
+                {/* Product photo (falls back to the drawn illustration if the file is missing) */}
+                <div className="relative aspect-[16/10] w-full overflow-hidden rounded-card shadow-card md:aspect-[4/3] md:max-w-lg md:justify-self-end">
+                  {failed[i] ? (
+                    <div className={cn('flex h-full w-full items-center justify-center p-6', t.art)}>
+                      <div className="aspect-square h-full">
+                        <s.Art />
+                      </div>
+                    </div>
+                  ) : (
+                    <img
+                      src={s.image}
+                      alt={s.imageAlt}
+                      loading="eager"
+                      decoding="async"
+                      draggable={false}
+                      onError={() => setFailed((f) => ({ ...f, [i]: true }))}
+                      className="h-full w-full select-none object-cover"
+                    />
+                  )}
                 </div>
               </div>
             </div>

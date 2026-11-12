@@ -11,7 +11,7 @@ export interface User {
   name: string;
   email: string;
   phone: string | null;
-  role: 'customer' | 'admin';
+  role: 'customer' | 'staff' | 'admin';
   defaultAddress: SavedAddress | null;
 }
 

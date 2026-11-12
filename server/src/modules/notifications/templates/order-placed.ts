@@ -1,14 +1,7 @@
 import type { EmailMessage } from '../email.service';
 import type { OrderConfirmation } from '../../orders/order.service';
 
-/** Customer names and addresses go into HTML, so they must be escaped. */
-const esc = (s: string) =>
-  s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
-
-const bdt = (n: number) => `৳${new Intl.NumberFormat('en-IN').format(Math.round(n))}`;
-
-const day = (iso: string) =>
-  new Intl.DateTimeFormat('en-GB', { weekday: 'long', day: 'numeric', month: 'long', timeZone: 'Asia/Dhaka' }).format(new Date(iso));
+import { bdt, esc, longDay as day } from './helpers';
 
 export function orderPlacedEmail(order: OrderConfirmation, shopUrl: string): EmailMessage {
   const firstName = order.contact.name.split(/\s+/)[0] ?? order.contact.name;

@@ -9,6 +9,7 @@
 import { connectDB, disconnectDB } from '../config/db';
 import { ORDER_STATUSES } from '../modules/orders/order.model';
 import { orderService, type OrderStatus } from '../modules/orders/order.service';
+import { notificationService } from '../modules/notifications/notification.service';
 
 async function main() {
   const [orderNumber, status, ...noteParts] = process.argv.slice(2);
@@ -22,6 +23,7 @@ async function main() {
   try {
     const r = await orderService.updateStatus(orderNumber, status as OrderStatus, { note: noteParts.join(' ') });
     console.log(`✅ ${r.orderNumber}: ${r.previousStatus} → ${r.status}`);
+    await notificationService.orderStatusChanged(r); // tells the customer by email
   } catch (err) {
     console.error(`❌ ${(err as Error).message}`);
     process.exitCode = 1;

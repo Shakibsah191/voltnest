@@ -2,7 +2,7 @@ import type { RequestHandler } from 'express';
 import '../types/express';
 import { AppError } from '../errors/AppError';
 import { tokenService } from '../../modules/auth/token.service';
-import { UserModel } from '../../modules/users/user.model';
+import { UserModel, type UserRole } from '../../modules/users/user.model';
 import { asyncHandler } from './asyncHandler';
 
 function bearerToken(header: string | undefined): string | null {
@@ -37,15 +37,24 @@ export const requireAuth: RequestHandler = (req, res, next) => {
 };
 
 /**
- * Logged in AND an admin. The role is re-read from the database, so removing
- * someone's admin role takes effect at once instead of when their token expires.
+ * Logged in with one of these roles. The role is re-read from the database on
+ * every request, so promoting, demoting or switching off an account works at
+ * once instead of when the 15-minute access token runs out.
  */
-export const requireAdmin: RequestHandler[] = [
-  requireAuth,
-  asyncHandler(async (req, _res, next) => {
-    const user = await UserModel.findById(req.user!.id).select('role').lean();
-    if (!user || user.role !== 'admin') throw AppError.forbidden('Admins only');
-    req.user!.role = 'admin';
-    next();
-  }),
-];
+export function requireRole(...roles: UserRole[]): RequestHandler[] {
+  return [
+    requireAuth,
+    asyncHandler(async (req, _res, next) => {
+      const user = await UserModel.findById(req.user!.id).select('role isActive').lean();
+      if (!user || user.isActive === false) throw new AppError(401, 'Please log in again', 'SESSION_ENDED');
+      if (!roles.includes(user.role)) throw AppError.forbidden('You don’t have access to this');
+      req.user!.role = user.role;
+      next();
+    }),
+  ];
+}
+
+/** Employees and the owner: orders, stock, the admin panel. */
+export const requireStaff = requireRole('staff', 'admin');
+/** Only the owner: prices, products, profit, staff accounts. */
+export const requireAdmin = requireRole('admin');

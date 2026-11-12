@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { LogOut, Package, User, UserRound } from 'lucide-react';
+import { LayoutDashboard, LogOut, Package, User, UserRound } from 'lucide-react';
 import { useAuthStore } from '@/features/auth/auth.store';
 import { useLogout } from '@/features/auth/hooks';
 
@@ -65,6 +65,12 @@ export function AccountMenu() {
             <p className="truncate text-xs text-ink-muted">{user.email}</p>
           </div>
           <div className="my-1 h-px bg-line" />
+          {(user.role === 'admin' || user.role === 'staff') && (
+            <Link role="menuitem" to="/admin" className="flex items-center gap-3 rounded-md px-3 py-2.5 text-sm font-medium text-brand hover:bg-surface-muted">
+              <LayoutDashboard className="h-4 w-4" aria-hidden />
+              Admin panel
+            </Link>
+          )}
           <Link role="menuitem" to="/account" className="flex items-center gap-3 rounded-md px-3 py-2.5 text-sm hover:bg-surface-muted">
             <UserRound className="h-4 w-4 text-ink-muted" aria-hidden />
             My account

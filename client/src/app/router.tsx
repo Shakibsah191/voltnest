@@ -14,6 +14,7 @@ import { OrderSuccessPage } from '@/pages/OrderSuccessPage';
 import { MyOrdersPage } from '@/pages/MyOrdersPage';
 import { OrderDetailPage } from '@/pages/OrderDetailPage';
 import { TrackOrderPage } from '@/pages/TrackOrderPage';
+import { PolicyPage } from '@/pages/PolicyPage';
 import { NotFoundPage } from '@/pages/NotFoundPage';
 
 export const router = createBrowserRouter([
@@ -52,11 +53,26 @@ export const router = createBrowserRouter([
       },
       { path: 'track-order', element: <TrackOrderPage /> },
       { path: 'order-confirmed/:orderNumber', element: <OrderSuccessPage /> },
+      { path: 'pages/:slug', element: <PolicyPage /> },
       { path: '*', element: <NotFoundPage /> },
     ],
   },
   {
     element: <CheckoutLayout />,
     children: [{ path: 'checkout', element: <CheckoutPage /> }],
+  },
+  {
+    // staff and the owner only; AdminLayout checks the role.
+    // Loaded on demand, so shoppers never download the admin code.
+    path: 'admin',
+    lazy: async () => ({ Component: (await import('@/layouts/AdminLayout')).AdminLayout }),
+    children: [
+      { index: true, lazy: async () => ({ Component: (await import('@/pages/admin/AdminDashboardPage')).AdminDashboardPage }) },
+      { path: 'orders', lazy: async () => ({ Component: (await import('@/pages/admin/AdminOrdersPage')).AdminOrdersPage }) },
+      { path: 'orders/:orderNumber', lazy: async () => ({ Component: (await import('@/pages/admin/AdminOrderPage')).AdminOrderPage }) },
+      { path: 'products', lazy: async () => ({ Component: (await import('@/pages/admin/AdminProductsPage')).AdminProductsPage }) },
+      { path: 'products/:id', lazy: async () => ({ Component: (await import('@/pages/admin/AdminProductPage')).AdminProductPage }) },
+      { path: 'staff', lazy: async () => ({ Component: (await import('@/pages/admin/AdminStaffPage')).AdminStaffPage }) },
+    ],
   },
 ]);

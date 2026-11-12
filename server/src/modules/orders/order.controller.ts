@@ -25,7 +25,7 @@ export const orderController = {
     const owner = cartOwnerOf(req);
     if (!owner) throw new AppError(400, 'Your cart is empty', 'CART_EMPTY');
     const order = await orderService.createOrder(owner, req.user?.id ?? null, input);
-    notificationService.orderPlaced(order); // sent in the background
+    void notificationService.orderPlaced(order); // sent in the background
     sendSuccess(res, order, undefined, 201);
   }),
 

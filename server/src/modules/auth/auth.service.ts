@@ -1,7 +1,7 @@
 import bcrypt from 'bcryptjs';
 import { authConfig } from '../../config/auth';
 import { AppError } from '../../shared/errors/AppError';
-import { UserModel } from '../users/user.model';
+import { UserModel, type UserRole } from '../users/user.model';
 import { tokenService } from './token.service';
 import type { LoginInput, RegisterInput } from './auth.schemas';
 
@@ -11,7 +11,7 @@ export interface PublicUser {
   name: string;
   email: string;
   phone: string | null;
-  role: 'customer' | 'admin';
+  role: UserRole;
   defaultAddress: {
     line1: string;
     area: string;
@@ -74,6 +74,9 @@ export const authService = {
     const user = await UserModel.findOne({ email: input.email }).select('+passwordHash');
     const ok = await bcrypt.compare(input.password, user?.passwordHash ?? DUMMY_HASH);
     if (!user || !ok) throw new AppError(401, 'Email or password is incorrect', 'INVALID_CREDENTIALS');
+    if (user.isActive === false) {
+      throw new AppError(403, 'This account is switched off. Ask the shop owner to turn it back on.', 'ACCOUNT_DISABLED');
+    }
 
     user.lastLoginAt = new Date();
     await user.save();
@@ -87,7 +90,9 @@ export const authService = {
 
     const user = await UserModel.findById(userId);
     // tokenVersion changes on logout, so older refresh tokens stop working everywhere
-    if (!user || user.tokenVersion !== tokenVersion) throw new AppError(401, 'Please log in again', 'SESSION_ENDED');
+    if (!user || user.tokenVersion !== tokenVersion || user.isActive === false) {
+      throw new AppError(401, 'Please log in again', 'SESSION_ENDED');
+    }
     return issueSession(user);
   },
 

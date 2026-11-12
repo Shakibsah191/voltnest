@@ -10,7 +10,9 @@ import { errorHandler } from './shared/middleware/errorHandler';
 
 export const app = express();
 
-app.set('trust proxy', 1); // Render sits behind a proxy; needed for secure cookies later
+// How many proxies sit in front of us. Live: Vercel's /api rewrite → Render's proxy → us = 2.
+// Getting this right makes req.ip the shopper's real IP, which the rate limits rely on.
+app.set('trust proxy', Number(process.env.TRUST_PROXY ?? (isProd ? 2 : 1)));
 app.disable('x-powered-by');
 
 app.use(helmet());

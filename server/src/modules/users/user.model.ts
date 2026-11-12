@@ -1,7 +1,8 @@
 import { Schema, model, type InferSchemaType } from 'mongoose';
 import { DELIVERY_ZONES } from '../../shared/delivery';
 
-export const USER_ROLES = ['customer', 'admin'] as const;
+/** customer = shopper, staff = employee (orders + stock), admin = owner (everything). */
+export const USER_ROLES = ['customer', 'staff', 'admin'] as const;
 export type UserRole = (typeof USER_ROLES)[number];
 // zones live in shared/delivery.ts; re-exported here so older imports keep working
 export { DELIVERY_ZONES };
@@ -31,6 +32,8 @@ const userSchema = new Schema(
     role: { type: String, enum: USER_ROLES, default: 'customer' },
     // bump this to log a user out everywhere (refresh tokens carry it)
     tokenVersion: { type: Number, default: 0 },
+    // false = switched off by the owner: can't log in, existing sessions end
+    isActive: { type: Boolean, default: true },
     addresses: { type: [addressSchema], default: [] },
     lastLoginAt: { type: Date },
   },

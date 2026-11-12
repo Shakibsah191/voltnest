@@ -17,7 +17,6 @@ export const categories: SeedCategory[] = [
   { name: 'Cables', slug: 'cables', description: 'Braided and silicone cables built to bend 30,000+ times.', sortOrder: 3 },
   { name: 'Hubs & Docks', slug: 'hubs-docks', description: 'Add HDMI, USB and Ethernet ports to your laptop.', sortOrder: 4 },
   { name: 'Audio', slug: 'audio', description: 'Earbuds, headphones and speakers.', sortOrder: 5 },
-  { name: 'Car Charging', slug: 'car-charging', description: 'Car chargers, mounts and jump starters.', sortOrder: 6 },
 ];
 
 type Options = { color?: string; wattage?: number; capacity?: number; ports?: number; length?: number };
@@ -326,43 +325,6 @@ const products: SeedProductInput[] = [
     specs: [['Output', '30W'], ['Playtime', '24 h'], ['Water resistance', 'IP67'], ['Weight', '1.1 kg']],
     variants: [v('Black', { color: 'Black', wattage: 30 }, 6990, 30, 7990)],
   },
-
-  // ───────────── Car Charging ─────────────
-  {
-    name: 'VoltNest Drive 30W Dual-Port Car Charger', category: 'car-charging', sales: 450, daysAgo: 79,
-    short: 'Sits flush in the cigarette socket and fast-charges two phones.',
-    highlights: ['USB-C + USB-A', 'Flush-fit design', 'Blue ring light'],
-    specs: [['Output', '30W total'], ['Ports', '1 × USB-C, 1 × USB-A'], ['Input', '12–24V DC'], ['Weight', '18 g']],
-    variants: [v('Black', { color: 'Black', wattage: 30, ports: 2 }, 1190, 150)],
-  },
-  {
-    name: 'VoltNest Drive 67W 3-Port Car Charger', category: 'car-charging', sales: 220, daysAgo: 28,
-    short: 'Charges a laptop in the car while two phones top up.',
-    highlights: ['67W USB-C for laptops', 'Three ports', 'Aluminium shell'],
-    specs: [['Output', '67W total'], ['Ports', '2 × USB-C, 1 × USB-A'], ['Input', '12–24V DC'], ['Weight', '32 g']],
-    variants: [v('Gunmetal', { color: 'Gunmetal', wattage: 67, ports: 3 }, 2290, 70)],
-  },
-  {
-    name: 'VoltNest Drive Magnetic Car Mount with 15W Charging', category: 'car-charging', sales: 160, daysAgo: 38,
-    short: 'Snap your phone on and it charges while you navigate.',
-    highlights: ['Strong magnetic hold', '15W wireless charging', 'Vent and dash clips'],
-    specs: [['Output', '15W wireless'], ['Mount', 'Vent clip + dash base'], ['Input', 'USB-C'], ['Rotation', '360°']],
-    variants: [v('Black', { color: 'Black', wattage: 15 }, 3490, 45)],
-  },
-  {
-    name: 'VoltNest Drive Vent Phone Holder', category: 'car-charging', sales: 300, daysAgo: 86,
-    short: 'A simple, sturdy grip that clamps phones from 4.7 to 6.9 inches.',
-    highlights: ['One-hand release', 'Fits most vents', 'No-scratch pads'],
-    specs: [['Phone size', '4.7–6.9 in'], ['Mount', 'Air vent hook'], ['Rotation', '360°'], ['Weight', '85 g']],
-    variants: [v('Black', { color: 'Black' }, 890, 140)],
-  },
-  {
-    name: 'VoltNest Drive Jump Starter 1000A Power Bank', category: 'car-charging', sales: 45, daysAgo: 8,
-    short: 'Starts a flat car battery and doubles as a power bank and flashlight.',
-    highlights: ['1000A peak current', 'Starts petrol engines up to 6 L', 'Reverse-polarity protection'],
-    specs: [['Peak current', '1000A'], ['Capacity', '12,000 mAh'], ['USB output', '18W'], ['Weight', '520 g']],
-    variants: [v('Black', { color: 'Black', capacity: 12000, ports: 2 }, 8990, 20)],
-  },
 ];
 
 // ───────────── builders ─────────────
@@ -372,7 +334,7 @@ export const slugify = (s: string) =>
 
 const PLACEHOLDER_COLORS = ['E8EEFF', 'EEF1F4', 'E9F5F1', 'FFF2E5'];
 
-/** Placeholder images until real photos are uploaded to Cloudinary (Day 5). */
+/** Placeholder images for categories that have no real photos yet. */
 const placeholderImages = (name: string, index: number) => {
   const label = encodeURIComponent(name.replace(/^VoltNest\s+/, ''));
   const bg = PLACEHOLDER_COLORS[index % PLACEHOLDER_COLORS.length];
@@ -383,10 +345,46 @@ const placeholderImages = (name: string, index: number) => {
   ];
 };
 
+/** Real photos served by the client from client/public/images/products/<category>/<category>-NN.jpg */
+function photoRange(cat: string, from: number, to: number) {
+  const out: string[] = [];
+  for (let n = from; n <= to; n++) out.push(`/images/products/${cat}/${cat}-${String(n).padStart(2, '0')}.jpg`);
+  return out;
+}
+
+/**
+ * How many photos each category has. When you add more photos to a folder,
+ * raise the last number here and run `npm run seed` again.
+ * A category with 0 photos uses placeholders.
+ */
+const PHOTO_POOLS: Record<string, string[]> = {
+  chargers: photoRange('chargers', 1, 5),
+  'power-banks': photoRange('power-banks', 1, 2),
+  cables: photoRange('cables', 1, 6),
+  'hubs-docks': photoRange('hubs-docks', 1, 6), // no photos yet → placeholders. Change 0 to the number of photos you add.
+  audio: photoRange('audio', 1, 7), // earbuds and headphones
+  'audio-speakers': photoRange('audio', 8, 10), // speakers
+};
+
+const poolCounters = new Map<string, number>();
+
+/** Real photos where we have them; placeholders for categories without photos yet. */
+const productImages = (p: SeedProductInput, index: number) => {
+  const key = p.category === 'audio' && /speaker/i.test(p.name) ? 'audio-speakers' : p.category;
+  const pool = PHOTO_POOLS[key];
+  if (!pool || pool.length === 0) return placeholderImages(p.name, index);
+  const k = poolCounters.get(key) ?? 0;
+  poolCounters.set(key, k + 1);
+  const main = { url: pool[k % pool.length], alt: p.name };
+  if (pool.length === 1) return [main];
+  return [main, { url: pool[(k + 1) % pool.length], alt: `${p.name}, second view` }];
+};
+
 const DAY_MS = 24 * 60 * 60 * 1000;
 
 /** Turns the compact list above into documents ready for ProductModel.create(). */
 export function buildProducts(categoryIdBySlug: Map<string, unknown>, now = new Date()) {
+  poolCounters.clear();
   return products.map((p, i) => {
     const categoryId = categoryIdBySlug.get(p.category);
     if (!categoryId) throw new Error(`Unknown category "${p.category}" on ${p.name}`);
@@ -400,7 +398,7 @@ export function buildProducts(categoryIdBySlug: Map<string, unknown>, now = new 
       shortDescription: p.short,
       description: `${p.short} ${p.highlights.join('. ')}. Covered by an 18-month VoltNest warranty.`,
       categoryIds: [categoryId],
-      images: placeholderImages(p.name, i),
+      images: productImages(p, i),
       highlights: p.highlights,
       specs: p.specs.map(([label, value]) => ({ label, value })),
       variants: p.variants.map((vr, j) => ({
