@@ -17,6 +17,10 @@ export interface ApiResult<T> {
   meta?: PageMeta;
 }
 
+/** Error code for "the host answered, but our server isn't up yet" (cold start). */
+export const SERVER_WAKING = 'SERVER_WAKING';
+const WAKING_STATUSES = new Set([429, 502, 503, 504]);
+
 export class ApiError extends Error {
   readonly status: number;
   readonly code: string;
@@ -83,6 +87,11 @@ async function send(url: URL, method: string, body: unknown, token: string | nul
 
 async function toResult<T>(res: Response): Promise<ApiResult<T>> {
   const json = await res.json().catch(() => null);
+  // A non-JSON 429/502/503/504 didn't come from our API: it's the host (e.g. Render's free
+  // plan) answering while the server wakes up. Say so, and let the query layer retry.
+  if (!res.ok && !json && WAKING_STATUSES.has(res.status)) {
+    throw new ApiError(res.status, SERVER_WAKING, 'The server is waking up. This can take up to a minute.');
+  }
   if (!res.ok || !json?.success) {
     throw new ApiError(
       res.status,

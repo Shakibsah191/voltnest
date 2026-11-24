@@ -6,14 +6,22 @@ import { TrustBadges } from '@/features/home/TrustBadges';
 import { NewsletterStrip } from '@/features/home/NewsletterStrip';
 import { Button } from '@/shared/ui/Button';
 import { useDocumentTitle } from '@/shared/lib/useDocumentTitle';
+import { ApiError, SERVER_WAKING } from '@/shared/api-client';
 
 export function HomePage() {
-  const { data, isPending, isError, error, refetch } = useHome();
+  const { data, isPending, isError, error, refetch, failureCount } = useHome();
   useDocumentTitle();
+  const waking = (isPending && failureCount > 0) || (isError && error instanceof ApiError && error.code === SERVER_WAKING);
 
   return (
     <div className="container space-y-section py-6 lg:py-8">
       <HeroCarousel />
+
+      {waking && isPending && (
+        <p role="status" className="text-center text-sm text-ink-muted">
+          Waking up the shop… this can take up to a minute the first time.
+        </p>
+      )}
 
       {isError ? (
         <div role="alert" className="rounded-card border border-line bg-surface-muted p-8 text-center">
