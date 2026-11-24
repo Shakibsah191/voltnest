@@ -2,7 +2,7 @@
 
 A full-stack e-commerce shop for charging gear, modelled on how anker.com is structured and behaves, built for the Bangladesh market. Customers browse, filter and order with Cash on Delivery. The owner and employees run orders, stock and products from an admin panel.
 
-**Live:** https://voltnest-nine.vercel.app  ·  **Demo video:** _add YouTube link_  ·  **API health:** https://voltnest-api.onrender.com/api/v1/health
+**Live:** https://voltnest-nine.vercel.app  ·  **Demo video:** https://youtu.be/xhCIxShUEoA  ·  **API health:** https://voltnest-api.onrender.com/api/v1/health
 
 > Structure and behaviour are inspired by anker.com. All brand names, product names, images and copy are original.
 
